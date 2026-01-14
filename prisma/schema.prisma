@@ -1,0 +1,63 @@
+generator client {
+  provider        = "prisma-client-js"
+  engineType      = "library"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN_GUDANG
+  KARYAWAN
+  KURIR
+}
+
+model User {
+  id             String          @id @default(cuid())
+  name           String
+  username       String          @unique
+  passwordHash   String
+  role           Role
+  isActive       Boolean         @default(true)
+  stockMovements StockMovement[] @relation("StockMovementCreatedBy")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sparepart {
+  id             String          @id @default(cuid())
+  sku            String          @unique
+  name           String
+  category       String?
+  unit           String          @default("pcs")
+  rackLoc        String?
+  minStock       Int             @default(0)
+  stockQty       Int             @default(0)
+  isActive       Boolean         @default(true)
+  stockMovements StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+model StockMovement {
+  id        String       @id @default(cuid())
+  type      MovementType
+  qty       Int
+  note      String?
+  createdAt DateTime     @default(now())
+
+  sparepartId String
+  sparepart   Sparepart @relation(fields: [sparepartId], references: [id], onDelete: Cascade)
+
+  createdById String
+  createdBy   User   @relation("StockMovementCreatedBy", fields: [createdById], references: [id])
+}
