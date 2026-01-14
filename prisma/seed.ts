@@ -1,30 +1,32 @@
 import { prisma } from "../src/lib/prisma";
 import bcrypt from "bcryptjs";
-import type { User } from "@prisma/client";
 
-// Ambil tipe role dari schema Prisma kamu (string / enum) => pasti valid
-type Role = User["role"];
+/**
+ * Hindari: import type { User/Role } dari "@prisma/client"
+ * Karena pada beberapa environment build bisa tidak tersedia dan bikin Next build gagal.
+ */
+type Role = "ADMIN_GUDANG" | "KARYAWAN" | "KURIR";
 
 async function upsertUser(params: {
   username: string;
-  name: string;
-  role: Role;
   password: string;
+  role: Role;
+  name?: string;
 }) {
   const passwordHash = await bcrypt.hash(params.password, 10);
 
   await prisma.user.upsert({
     where: { username: params.username },
     update: {
-      name: params.name,
-      role: params.role,
       passwordHash,
+      role: params.role,
+      name: params.name ?? params.username,
     },
     create: {
       username: params.username,
-      name: params.name,
-      role: params.role,
       passwordHash,
+      role: params.role,
+      name: params.name ?? params.username,
     },
   });
 }
@@ -32,29 +34,28 @@ async function upsertUser(params: {
 async function main() {
   await upsertUser({
     username: "admin",
-    name: "Admin Gudang",
-    role: "ADMIN_GUDANG" as Role,
     password: "admin123",
+    role: "ADMIN_GUDANG",
+    name: "Admin Gudang",
   });
 
   await upsertUser({
     username: "karyawan",
-    name: "Karyawan",
-    role: "KARYAWAN" as Role,
     password: "karyawan123",
+    role: "KARYAWAN",
+    name: "Karyawan",
   });
 
   await upsertUser({
     username: "kurir",
-    name: "Kurir",
-    role: "KURIR" as Role,
     password: "kurir123",
+    role: "KURIR",
+    name: "Kurir",
   });
-
-  console.log("✅ Seed users berhasil.");
 }
 
 main()
+  .then(() => console.log("✅ Seed selesai"))
   .catch((e) => {
     console.error("❌ Seed error:", e);
     process.exit(1);
